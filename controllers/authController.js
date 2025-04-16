@@ -1,22 +1,17 @@
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const bcrypt = require("bcryptjs");
 
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
+const authMiddleware = async (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "Unauthorized" });
 
   try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    res.json({ message: "Login successful", user });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.id);
+    next();
+  } catch {
+    res.status(401).json({ message: "Invalid token" });
   }
 };
+
+module.exports = authMiddleware;

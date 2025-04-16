@@ -1,3 +1,11 @@
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const User = require("../models/User");
+const { getUserTree } = require("../controllers/userController");
+const authMiddleware = require("../middleware/authMiddleware");
+
+const router = express.Router();
+
 router.post("/add-user", authMiddleware, async (req, res) => {
   const { name, email, password } = req.body;
   const parent = req.user.id;
@@ -20,3 +28,5 @@ router.post("/add-user", authMiddleware, async (req, res) => {
 
   res.status(201).json({ message: "User added successfully", newUser });
 });
+router.get("/tree", authMiddleware, getUserTree);
+module.exports = router;
