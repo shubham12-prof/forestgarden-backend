@@ -16,6 +16,6 @@ router.get("/my-children", authMiddleware, getMyChildren);
 router.get("/tree", authMiddleware, getUserTree);
 router.get("/:id", authMiddleware, getUserById);
 router.delete("/delete/:userId", authMiddleware, deleteUser);
-router.put("/:id", authMiddleware, updateUser);
+router.put("/:userid", authMiddleware, updateUser);
 
 module.exports = router;
