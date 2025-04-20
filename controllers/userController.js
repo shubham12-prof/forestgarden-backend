@@ -75,6 +75,8 @@ const addUser = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const isAdminBoolean = isAdmin === "on" || isAdmin === true;
+
     const newUser = await User.create({
       name,
       fatherName,
@@ -101,7 +103,7 @@ const addUser = async (req, res) => {
       parent: parentId,
       addedBy: parentId,
       password: hashedPassword,
-      isAdmin: isAdmin || false,
+      isAdmin: isAdminBoolean,
     });
 
     const parentUser = await User.findById(parentId);
