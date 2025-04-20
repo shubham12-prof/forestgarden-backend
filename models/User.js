@@ -27,6 +27,7 @@ const userSchema = new mongoose.Schema(
     password: String,
     parent: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     children: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    isAdmin: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
