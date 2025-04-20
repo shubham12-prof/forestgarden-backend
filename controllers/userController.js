@@ -16,6 +16,7 @@ const getUserTree = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        isAdmin: user.isAdmin,
         children: children.filter(Boolean),
       };
     };
@@ -60,6 +61,7 @@ const addUser = async (req, res) => {
       sponsorId,
       sponsorName,
       password,
+      isAdmin,
     } = req.body;
 
     if (!password) {
@@ -99,6 +101,7 @@ const addUser = async (req, res) => {
       parent: parentId,
       addedBy: parentId,
       password: hashedPassword,
+      isAdmin: isAdmin || false,
     });
 
     const parentUser = await User.findById(parentId);
@@ -175,19 +178,27 @@ const deleteUser = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 const updateUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const admin = req.user;
-    if (!admin.isAdmin) {
-      return res
-        .status(403)
-        .json({ message: "You are not authorized to edit users." });
-    }
+    const loggedInUser = req.user;
 
     const userToUpdate = await User.findById(userId);
     if (!userToUpdate) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    const isAuthorized =
+      loggedInUser.isAdmin ||
+      (userToUpdate.parent &&
+        userToUpdate.parent.toString() === loggedInUser._id.toString()) ||
+      userToUpdate._id.toString() === loggedInUser._id.toString();
+
+    if (!isAuthorized) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to edit this user." });
     }
 
     const updatedData = {
@@ -213,6 +224,11 @@ const updateUser = async (req, res) => {
       aadhaarNo: req.body.aadhaarNo || userToUpdate.aadhaarNo,
       sponsorName: req.body.sponsorName || userToUpdate.sponsorName,
       sponsorId: req.body.sponsorId || userToUpdate.sponsorId,
+
+      isAdmin:
+        req.body.isAdmin !== undefined
+          ? req.body.isAdmin
+          : userToUpdate.isAdmin,
     };
 
     const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {
