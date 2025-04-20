@@ -2,20 +2,23 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 const authMiddleware = async (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ message: "Not authorized" });
+  const token = req.header("x-auth-token");
+  if (!token) {
+    return res.status(401).json({ message: "No token, authorization denied" });
+  }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select("-password");
+    const user = await User.findById(decoded.userId);
 
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ message: "Access denied. Admins only." });
+    if (!user || user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied, not an admin" });
     }
 
+    req.user = user;
     next();
   } catch (err) {
-    res.status(401).json({ message: "Token failed" });
+    res.status(400).json({ message: "Token is not valid" });
   }
 };
 
