@@ -11,11 +11,11 @@ const {
 
 const router = express.Router();
 
-router.post("/add-user", authMiddleware, addUser);
-router.get("/my-children", authMiddleware, getMyChildren);
-router.get("/tree", authMiddleware, getUserTree);
-router.get("/:id", authMiddleware, getUserById);
-router.delete("/delete/:userId", authMiddleware, deleteUser);
-router.put("/:userid", authMiddleware, updateUser);
+router.post("/add-user", authMiddleware(), addUser);
+router.get("/my-children", authMiddleware(), getMyChildren);
+router.get("/tree", authMiddleware(), getUserTree);
+router.get("/:id", authMiddleware(), getUserById);
+router.delete("/delete/:userId", authMiddleware(), deleteUser);
+router.put("/:userid", authMiddleware("admin"), updateUser);
 
 module.exports = router;
