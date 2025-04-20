@@ -175,6 +175,56 @@ const deleteUser = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+const updateUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const admin = req.user;
+    if (!admin.isAdmin) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to edit users." });
+    }
+
+    const userToUpdate = await User.findById(userId);
+    if (!userToUpdate) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const updatedData = {
+      name: req.body.name || userToUpdate.name,
+      fatherName: req.body.fatherName || userToUpdate.fatherName,
+      dob: req.body.dob || userToUpdate.dob,
+      gender: req.body.gender || userToUpdate.gender,
+      maritalStatus: req.body.maritalStatus || userToUpdate.maritalStatus,
+      phone: req.body.phone || userToUpdate.phone,
+      email: req.body.email || userToUpdate.email,
+      nomineeName: req.body.nomineeName || userToUpdate.nomineeName,
+      nomineeRelation: req.body.nomineeRelation || userToUpdate.nomineeRelation,
+      nomineePhone: req.body.nomineePhone || userToUpdate.nomineePhone,
+      address: req.body.address || userToUpdate.address,
+      pinCode: req.body.pinCode || userToUpdate.pinCode,
+      bankName: req.body.bankName || userToUpdate.bankName,
+      branchAddress: req.body.branchAddress || userToUpdate.branchAddress,
+      accountNo: req.body.accountNo || userToUpdate.accountNo,
+      accountType: req.body.accountType || userToUpdate.accountType,
+      ifscCode: req.body.ifscCode || userToUpdate.ifscCode,
+      micrNo: req.body.micrNo || userToUpdate.micrNo,
+      panNo: req.body.panNo || userToUpdate.panNo,
+      aadhaarNo: req.body.aadhaarNo || userToUpdate.aadhaarNo,
+      sponsorName: req.body.sponsorName || userToUpdate.sponsorName,
+      sponsorId: req.body.sponsorId || userToUpdate.sponsorId,
+    };
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {
+      new: true,
+    });
+
+    res.json({ message: "User updated successfully", updatedUser });
+  } catch (err) {
+    console.error("Error updating user:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
 
 module.exports = {
   addUser,
@@ -182,4 +232,5 @@ module.exports = {
   getUserById,
   getUserTree,
   deleteUser,
+  updateUser,
 };
