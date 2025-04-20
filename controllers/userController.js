@@ -183,7 +183,7 @@ const deleteUser = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
-    const { userId } = req.params.userid;
+    const userId = req.params.userid;
     const loggedInUser = req.user;
 
     const userToUpdate = await User.findById(userId);
@@ -196,6 +196,11 @@ const updateUser = async (req, res) => {
       (userToUpdate.parent &&
         userToUpdate.parent.toString() === loggedInUser._id.toString()) ||
       userToUpdate._id.toString() === loggedInUser._id.toString();
+
+    console.log("User ID:", userId);
+    console.log("loggedInUser._id:", loggedInUser._id);
+    console.log("userToUpdate.parent:", userToUpdate.parent);
+    console.log("Authorization Check Result:", isAuthorized);
 
     if (!isAuthorized) {
       return res
@@ -226,16 +231,19 @@ const updateUser = async (req, res) => {
       aadhaarNo: req.body.aadhaarNo || userToUpdate.aadhaarNo,
       sponsorName: req.body.sponsorName || userToUpdate.sponsorName,
       sponsorId: req.body.sponsorId || userToUpdate.sponsorId,
-
       isAdmin:
         req.body.isAdmin !== undefined
           ? req.body.isAdmin
           : userToUpdate.isAdmin,
     };
 
+    console.log("Request Body:", req.body);
+
     const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {
       new: true,
     });
+
+    console.log("Updated User:", updatedUser);
 
     res.json({ message: "User updated successfully", updatedUser });
   } catch (err) {
