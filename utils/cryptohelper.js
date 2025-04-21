@@ -10,7 +10,6 @@ const decryptData = (cipherText) => {
   const bytes = CryptoJS.AES.decrypt(cipherText, secretKey);
   return bytes.toString(CryptoJS.enc.Utf8);
 };
-s;
 module.exports = {
   encryptData,
   decryptData,
