@@ -11,6 +11,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
   "https://forestgarden-frontend.vercel.app",
+  "https://www.forest-garden.in",
 ];
 
 app.use(
