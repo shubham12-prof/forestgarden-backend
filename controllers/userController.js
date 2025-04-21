@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { decryptData } = require("../utils/cryptohelper");
+const { encryptData } = require("../utils/cryptohelper");
 const User = require("../models/User");
 
 const getUserTree = async (req, res) => {
@@ -92,12 +94,12 @@ const addUser = async (req, res) => {
       pinCode,
       bankName,
       branchAddress,
-      accountNo,
+      accountNo: encryptData(accountNo),
       accountType,
-      ifscCode,
-      micrNo,
-      panNo,
-      aadhaarNo,
+      ifscCode: encryptData(ifscCode),
+      micrNo: encryptData(micrNo),
+      panNo: encryptData(panNo),
+      aadhaarNo: encryptData(aadhaarNo),
       sponsorName,
       sponsorId,
       parent: parentId,
@@ -146,6 +148,12 @@ const getUserById = async (req, res) => {
 
     const user = await User.findById(userId).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.aadhaarNo = decryptData(user.aadhaarNo);
+    user.panNo = decryptData(user.panNo);
+    user.accountNo = decryptData(user.accountNo);
+    user.ifscCode = decryptData(user.ifscCode);
+    user.micrNo = decryptData(user.micrNo);
 
     res.json(user);
   } catch (err) {
