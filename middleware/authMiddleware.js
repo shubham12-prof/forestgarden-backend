@@ -11,7 +11,7 @@ const authMiddleware = (role = null) => {
       const user = await User.findById(decoded.id).select("-password");
 
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(404).json({ message: "User not found yet" });
       }
 
       req.user = user;
