@@ -130,8 +130,19 @@ const getMyChildren = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.json({ children: user.children });
-    console.log("Fetched user's children:", user.children);
+    const decryptedChildren = user.children.map((child) => {
+      return {
+        ...child._doc,
+        aadhaarNo: decryptData(child.aadhaarNo),
+        panNo: decryptData(child.panNo),
+        accountNo: decryptData(child.accountNo),
+        ifscCode: decryptData(child.ifscCode),
+        micrNo: decryptData(child.micrNo),
+      };
+    });
+
+    res.json({ children: decryptedChildren });
+    console.log("Fetched and decrypted user's children:", decryptedChildren);
   } catch (err) {
     console.error("Error fetching children:", err);
     res.status(500).json({ message: "Server error", error: err.message });
