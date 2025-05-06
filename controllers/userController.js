@@ -7,32 +7,46 @@ const User = require("../models/User");
 const getUserTree = async (req, res) => {
   try {
     const buildTree = async (userId) => {
-      const user = await User.findById(userId).populate("children");
+      const user = await User.findById(userId)
+        .populate("leftChild")
+        .populate("rightChild");
+
       if (!user) return null;
 
-      const children = await Promise.all(
-        user.children.map((child) => buildTree(child._id))
-      );
+      const children = [];
+
+      if (user.leftChild) {
+        const leftChild = await buildTree(user.leftChild._id);
+        if (leftChild)
+          children.push({ ...leftChild, side: "left" });
+      }
+
+      if (user.rightChild) {
+        const rightChild = await buildTree(user.rightChild._id);
+        if (rightChild)
+          children.push({ ...rightChild, side: "right" });
+      }
 
       return {
         id: user._id,
         name: user.name,
         email: user.email,
         isAdmin: user.isAdmin,
-        children: children.filter(Boolean),
+        children: children,
       };
     };
 
     const tree = await buildTree(req.user.id);
     if (!tree) return res.status(404).json({ message: "User not found" });
+
     res.json(tree);
   } catch (err) {
     console.error("Tree error:", err);
-    res
-      .status(500)
-      .json({ message: "Error building user tree", error: err.message });
+    res.status(500).json({ message: "Error building user tree", error: err.message });
   }
 };
+
+
 
 const addUser = async (req, res) => {
   try {
@@ -64,19 +78,40 @@ const addUser = async (req, res) => {
       sponsorName,
       password,
       isAdmin,
+      side, // mandatory now
     } = req.body;
 
     if (!password) {
       return res.status(400).json({ message: "Password is required" });
     }
 
-    const childCount = await User.countDocuments({ parent: parentId });
-    if (childCount >= 2) {
-      return res.status(400).json({ message: "You can only add 2 users." });
+    if (!side) {
+      return res.status(400).json({ message: "Side (left or right) must be selected" });
+    }
+
+    if (!["left", "right"].includes(side)) {
+      return res.status(400).json({ message: "Invalid side selected" });
+    }
+
+    const parentUser = await User.findById(parentId);
+    if (!parentUser) {
+      return res.status(404).json({ message: "Parent not found" });
+    }
+
+    if (side === "left" && parentUser.leftChild) {
+      return res.status(400).json({ message: "Left side already assigned" });
+    }
+
+    if (side === "right" && parentUser.rightChild) {
+      return res.status(400).json({ message: "Right side already assigned" });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const isAdminBoolean = isAdmin === "on" || isAdmin === true;
 
     const newUser = await User.create({
@@ -103,51 +138,59 @@ const addUser = async (req, res) => {
       sponsorName,
       sponsorId,
       parent: parentId,
-      addedBy: parentId,
       password: hashedPassword,
       isAdmin: isAdminBoolean,
+      side,
     });
 
-    const parentUser = await User.findById(parentId);
-    if (!parentUser.children) {
-      parentUser.children = [];
+    if (!parentUser.children) parentUser.children = [];
+
+    if (side === "left") {
+      parentUser.leftChild = newUser._id;
+      parentUser.children[0] = newUser._id;
+    } else {
+      parentUser.rightChild = newUser._id;
+      parentUser.children[1] = newUser._id;
     }
-    parentUser.children.push(newUser._id);
+
     await parentUser.save();
 
-    res.status(201).json({ message: "User added successfully", newUser });
+    res.status(201).json({ message: `User added successfully to ${side} side`, newUser });
   } catch (err) {
     console.error("Error adding user:", err.message);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
+
+
 const getMyChildren = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).populate("children");
+    const user = await User.findById(req.user.id)
+      .populate("leftChild")
+      .populate("rightChild");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const decryptedChildren = user.children.map((child) => {
-      return {
-        ...child._doc,
-        aadhaarNo: decryptData(child.aadhaarNo),
-        panNo: decryptData(child.panNo),
-        accountNo: decryptData(child.accountNo),
-        ifscCode: decryptData(child.ifscCode),
-        micrNo: decryptData(child.micrNo),
-      };
-    });
+    const children = [user.leftChild, user.rightChild].filter(Boolean).map((child) => ({
+      ...child._doc,
+      aadhaarNo: decryptData(child.aadhaarNo),
+      panNo: decryptData(child.panNo),
+      accountNo: decryptData(child.accountNo),
+      ifscCode: decryptData(child.ifscCode),
+      micrNo: decryptData(child.micrNo),
+    }));
 
-    res.json({ children: decryptedChildren });
-    console.log("Fetched and decrypted user's children:", decryptedChildren);
+    res.json({ children });
+    console.log("Fetched and decrypted user's children:", children);
   } catch (err) {
     console.error("Error fetching children:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 const getUserById = async (req, res) => {
   try {
@@ -176,20 +219,27 @@ const getUserById = async (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const parent = req.user;
+
 
     const userToDelete = await User.findById(userId);
     if (!userToDelete) {
       return res.status(404).json({ message: "User not found" });
     }
 
+
     const parentUser = await User.findById(userToDelete.parent);
     if (parentUser) {
-      parentUser.children = parentUser.children.filter(
-        (childId) => childId.toString() !== userId
-      );
+
+      if (parentUser.leftChild && parentUser.leftChild.toString() === userId) {
+        parentUser.leftChild = null;
+      }
+
+      else if (parentUser.rightChild && parentUser.rightChild.toString() === userId) {
+        parentUser.rightChild = null;
+      }
       await parentUser.save();
     }
+
 
     await User.findByIdAndDelete(userId);
 
@@ -199,6 +249,7 @@ const deleteUser = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 const updateUser = async (req, res) => {
   try {

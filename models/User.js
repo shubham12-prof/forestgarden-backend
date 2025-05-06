@@ -4,7 +4,10 @@ const userSchema = new mongoose.Schema(
   {
     name: String,
     fatherName: String,
+    isAdmin: { type: Boolean, default: false },
     dob: String,
+    leftChild: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    rightChild: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     gender: String,
     maritalStatus: String,
     phone: String,
@@ -26,8 +29,7 @@ const userSchema = new mongoose.Schema(
     sponsorId: String,
     password: String,
     parent: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    children: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    isAdmin: { type: Boolean, default: false },
+
   },
   { timestamps: true }
 );
